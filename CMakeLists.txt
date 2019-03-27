@@ -19,6 +19,7 @@ else()
     find_package(GLEW REQUIRED)
 endif()
 find_package(OpenGL REQUIRED)
+find_package(glm REQUIRED)
 file(GLOB_RECURSE SOURCES src/*.cpp)
 add_executable(${EXEC_NAME} ${SOURCES})
 
