@@ -2,26 +2,13 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <shader.h>
 #include <iostream>
 
 #include <string>
 #include <fstream>
 #include <streambuf>
 
-std::string readFile(const char *filename)
-{
-    std::ifstream t(filename);
-    std::string str;
-
-    t.seekg(0, std::ios::end);
-    str.reserve(t.tellg());
-    t.seekg(0, std::ios::beg);
-
-    str.assign((std::istreambuf_iterator<char>(t)),
-               std::istreambuf_iterator<char>());
-
-    return str;
-}
 
 void processInput(GLFWwindow *window)
 {
@@ -72,67 +59,7 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
 
-    std::string vert = readFile("shaders/basic.vert");
-    const char *vertexShaderSource = vert.c_str();
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-                  << infoLog << std::endl;
-        std::cout << "Shader source:" << std::endl
-                  << vertexShaderSource << std::endl;
-    }
-    else
-    {
-        std::cout << "vertex shader compiled successfully" << std::endl;
-    }
-
-    std::string frag = readFile("shaders/orange.frag");
-    const char *fragmentShaderSource = frag.c_str();
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-                  << infoLog << std::endl;
-        std::cout << "Shader source:" << std::endl
-                  << fragmentShaderSource << std::endl;
-    }
-    else
-    {
-        std::cout << "fragment shader compiled successfully" << std::endl;
-    }
-
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::PROGRAM::LINK_FAILED\n"
-                  << infoLog << std::endl;
-    }
-    else
-    {
-        std::cout << "program linked successfully" << std::endl;
-    }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    Shader shader("shaders/basic.vert", "shaders/orange.frag");
 
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
@@ -149,7 +76,7 @@ int main(void)
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
+        shader.use();
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 

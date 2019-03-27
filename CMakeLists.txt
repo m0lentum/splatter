@@ -23,8 +23,10 @@ find_package(glm REQUIRED)
 file(GLOB_RECURSE SOURCES src/*.cpp)
 add_executable(${EXEC_NAME} ${SOURCES})
 
+target_include_directories(${EXEC_NAME} PUBLIC include)
 target_include_directories(${EXEC_NAME} PUBLIC ${OPENGL_INCLUDE_DIR})
 target_include_directories(${EXEC_NAME} PUBLIC ${GLEW_INCLUDE_DIRS})
+
 target_link_libraries(${EXEC_NAME} glfw)
 target_link_libraries(${EXEC_NAME} ${GLEW_LIBRARIES})
 target_link_libraries(${EXEC_NAME} ${OPENGL_gl_LIBRARY})
