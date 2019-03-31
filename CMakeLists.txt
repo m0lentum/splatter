@@ -19,13 +19,20 @@ else()
     find_package(GLEW REQUIRED)
 endif()
 find_package(OpenGL REQUIRED)
-find_package(glm REQUIRED)
+if(DEFINED GLM_SRC_DIR)
+    set(GLM_INCLUDE_DIRS ${GLM_SRC_DIR})
+else()
+    find_package(glm REQUIRED)
+endif()
+
 file(GLOB_RECURSE SOURCES src/*.cpp)
 add_executable(${EXEC_NAME} ${SOURCES})
-
 target_include_directories(${EXEC_NAME} PUBLIC include)
+
 target_include_directories(${EXEC_NAME} PUBLIC ${OPENGL_INCLUDE_DIR})
 target_include_directories(${EXEC_NAME} PUBLIC ${GLEW_INCLUDE_DIRS})
+target_include_directories(${EXEC_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
+
 
 target_link_libraries(${EXEC_NAME} glfw)
 target_link_libraries(${EXEC_NAME} ${GLEW_LIBRARIES})
