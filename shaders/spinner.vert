@@ -1,5 +1,8 @@
 #version 330 core
-layout (location = 0) in vec3 position;
+layout (location = 0) in vec3 vertPosition;
+layout (location = 1) in vec3 vertColor;
+
+out vec4 localColor;
 
 uniform mat4 MVP;
 uniform float t;
@@ -23,6 +26,8 @@ vec3 rotate(vec3 v, vec3 axis, float angle) {
 
 void main()
 {
-    vec3 rotated = rotate(position, vec3(0.0, 1.0, 0.0), t);
-    gl_Position = MVP * vec4(rotated.x, rotated.y, rotated.z, 1.0);
+    vec3 rotated = rotate(vertPosition, vec3(0.0, 1.0, 1.0), t);
+
+    gl_Position = MVP * vec4(rotated.xyz, 1.0);
+    localColor = vec4(vertColor.xyz, 1.0);
 }
