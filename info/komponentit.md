@@ -1,0 +1,6 @@
+- OpenGL: grafiikkarajapinta
+    - GLFW: ikkuna ja konteksti
+    - GLEW: laajennosten hallinta
+- Simulaatio: datan lähde
+    - jos ehdin niin teen itse, muutoin staattinen mock-data
+- Renderöijä: muodostaa simulaatiodatasta kuvan

@@ -1,0 +1,4 @@
+- hiukkanen
+    - yksittäinen simulaatiopiste
+    - sijainti ja mahd. väri tms. materiaalitietoa
+    - ei sisällä tietoa naapurihiukkasista
