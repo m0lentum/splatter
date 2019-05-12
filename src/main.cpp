@@ -11,28 +11,17 @@
 #include <fstream>
 #include <streambuf>
 
-static const GLfloat cube_verts[] = {
-    // position x, y, z, color r, g, b
-    -1.0f, -1.0f, -1.0f, 0.5f, 1.0f, 0.0f,
-    -1.0f, -1.0f, 1.0f, 0.5f, 1.0f, 1.0f,
-    -1.0f, 1.0f, 1.0f, 0.5f, 0.0f, 1.0f,
-    -1.0f, 1.0f, -1.0f, 0.5f, 0.0f, 0.0f,
-    1.0f, -1.0f, -1.0f, 0.5f, 1.0f, 0.0f,
-    1.0f, -1.0f, 1.0f, 0.5f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f, 0.5f, 0.0f, 1.0f,
-    1.0f, 1.0f, -1.0f, 0.5f, 0.0f, 0.0f};
-
-static const GLuint cube_indices[] = {
-    0, 1, 3, 2, 3, 1,
-    0, 4, 1, 5, 1, 4,
-    0, 3, 4, 7, 4, 3,
-    3, 2, 7, 6, 7, 2,
-    6, 2, 5, 1, 5, 2,
-    6, 5, 7, 4, 7, 5};
+static const GLfloat particles[] = {
+    // x, y, z, radius, r, g, b
+    -3.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.5f, 0.5f,
+    3.0f, 0.0f, -2.0f, 1.5f, 0.2f, 0.8f, 0.1f,
+    0.0f, 3.0f, 0.0f, 1.0f, 0.5f, 1.0f, 0.8f,
+    3.0f, 3.0f, 1.0f, 0.8f, 0.3f, 0.4f, 0.5f};
 
 static const unsigned int WINDOW_WIDTH = 640;
 static const unsigned int WINDOW_HEIGHT = 480;
 static const float WINDOW_ASPECT_RATIO = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
+static const float FOV = glm::radians(90.0f);
 
 void processInput(GLFWwindow *window)
 {
@@ -75,34 +64,31 @@ int main(void)
     // vertex buffer
     GLuint VBO;
     glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_verts), cube_verts, GL_DYNAMIC_DRAW);
-
-    // index buffer
-    GLuint EB;
-    glGenBuffers(1, &EB);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EB);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), cube_indices, GL_DYNAMIC_DRAW);
+    //glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(particles), particles, GL_DYNAMIC_DRAW);
 
     // vertex array object
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_verts), cube_verts, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EB);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), cube_indices, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(particles), particles, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(4 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     // depth buffer
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
+    // enable point size variation
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
     // compile shader
-    Shader shader("shaders/spinner.vert", "shaders/vertColor.frag");
+    Shader shader("shaders/splat.vert", "shaders/splat_depth.frag");
 
     // scene setup
 
@@ -111,9 +97,9 @@ int main(void)
         glm::vec3(0, 0, 0), // and looks at the origin
         glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
     );
-    glm::mat4 proj = glm::perspective(glm::radians(90.0f), WINDOW_ASPECT_RATIO, 0.1f, 10.0f);
-    glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 mvp = proj * view * model;
+    glm::mat4 proj = glm::perspective(FOV, WINDOW_ASPECT_RATIO, 0.1f, 100.0f);
+
+    //float near_plane_height = (float)WINDOW_HEIGHT / (2 * glm::tan(whut))     KESKES
 
     float t = 0.0f;
 
@@ -124,11 +110,18 @@ int main(void)
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        view = glm::lookAt(
+            glm::vec3(4 * glm::sin(t), 1 * glm::cos(t), 5),
+            glm::vec3(0, 0, 0),
+            glm::vec3(0, 1, 0));
+
         shader.use();
-        shader.setMat4("MVP", mvp);
-        shader.setFloat("t", t);
+        shader.setMat4("view_proj_matrix", proj * view);
+        shader.setFloat("fov_y", FOV);
+        shader.setFloat("viewport_height", WINDOW_HEIGHT);
+        shader.setFloat("epsilon", 0.5f);
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 12 * 3, GL_UNSIGNED_INT, (void *)0);
+        glDrawArrays(GL_POINTS, 0, 4);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
@@ -136,7 +129,7 @@ int main(void)
         /* Poll for and process events */
         glfwPollEvents();
 
-        t += 0.02f;
+        t += 0.01f;
     }
 
     glfwTerminate();
