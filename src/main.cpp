@@ -16,8 +16,8 @@
 static const float EPSILON = 0.0f; // TODO figure out what this should be
 static const float RADIUS = 0.3f;
 
-static const unsigned int WINDOW_WIDTH = 640;
-static const unsigned int WINDOW_HEIGHT = 480;
+static const unsigned int WINDOW_WIDTH = 800;
+static const unsigned int WINDOW_HEIGHT = 600;
 static const float WINDOW_ASPECT_RATIO = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
 static const float FOV = glm::radians(90.0f);
 
