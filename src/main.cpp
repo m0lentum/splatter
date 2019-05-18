@@ -78,10 +78,19 @@ int main(void)
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE); // pure additive blend, no alphas
 
+    glClampColorARB(GL_CLAMP_VERTEX_COLOR_ARB, GL_FALSE);
+    glClampColorARB(GL_CLAMP_READ_COLOR_ARB, GL_FALSE);
+    glClampColorARB(GL_CLAMP_FRAGMENT_COLOR_ARB, GL_FALSE);
+
     // compile shaders
     Shader shader_depth_pass("shaders/splat.vert", "shaders/splat_depth.frag");
     Shader shader_blend_pass("shaders/splat.vert", "shaders/splat_attributes.frag");
-    Shader shader_render_pass("shaders/render.vert", "shaders/render_depth_texture.frag");
+    shader_blend_pass.use();
+    shader_blend_pass.setInt("g_depth", 0);
+    Shader shader_render_pass("shaders/render.vert", "shaders/render.frag");
+    shader_render_pass.use();
+    shader_render_pass.setInt("g_normals", 0);
+    shader_render_pass.setInt("g_colors", 1);
 
     // setup G-buffers
     unsigned int gBuffer, gDepthTex, gNormalTex, gColorTex;
@@ -91,7 +100,7 @@ int main(void)
 
     // scene setup
 
-    sim::Simulation simulation = sim::scenarios::cube(5.0f, 2, RADIUS, glm::vec3(0.5, 0.8, 0.6));
+    sim::Simulation simulation = sim::scenarios::cube(5.0f, 3, RADIUS, glm::vec3(0.5, 0.8, 0.6));
 
     glm::mat4 view = glm::lookAt(
         glm::vec3(4, 3, 3), // Camera is at (4,3,3), in World Space
@@ -149,14 +158,14 @@ int main(void)
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         shader_render_pass.use();
-        shader_render_pass.setFloat("z_near", Z_NEAR);
-        shader_render_pass.setFloat("z_far", Z_FAR);
-        ///glActiveTexture(GL_TEXTURE0);
-        ///glBindTexture(GL_TEXTURE_2D, gNormalTex);
-        ///glActiveTexture(GL_TEXTURE1);
-        ///glBindTexture(GL_TEXTURE_2D, gColorTex);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gDepthTex);
+        glBindTexture(GL_TEXTURE_2D, gNormalTex);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, gColorTex);
+        //shader_render_depth.setFloat("z_far", Z_FAR);
+        //shader_render_depth.setFloat("z_near", Z_NEAR);
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, gDepthTex);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
         glBindVertexArray(quadVAO);
@@ -187,7 +196,7 @@ void setupGBuffers(
     // depth buffer
     glGenTextures(1, &depthTexture);
     glBindTexture(GL_TEXTURE_2D, depthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
@@ -195,7 +204,7 @@ void setupGBuffers(
     // normal buffer
     glGenTextures(1, &normalTexture);
     glBindTexture(GL_TEXTURE_2D, normalTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, normalTexture, 0);
@@ -203,12 +212,12 @@ void setupGBuffers(
     // color/weight buffer (colorR, colorG, colorB, weight)
     glGenTextures(1, &colorTexture);
     glBindTexture(GL_TEXTURE_2D, colorTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, colorTexture, 0);
 
-    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    unsigned int attachments[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     glDrawBuffers(2, attachments);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
