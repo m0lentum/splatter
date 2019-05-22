@@ -12,6 +12,9 @@
 
 #include <shader.h>
 #include <sim.h>
+#include <camera.h>
+
+//
 
 static const float RADIUS = 1.0f;
 static const float EPSILON = 1.5f * RADIUS;
@@ -22,6 +25,16 @@ static const float WINDOW_ASPECT_RATIO = (float)WINDOW_WIDTH / (float)WINDOW_HEI
 static const float FOV = glm::radians(90.0f);
 static const float Z_NEAR = 0.1f;
 static const float Z_FAR = 20.0f;
+
+static Camera cam(6.0f, 0.12f, 0.2f);
+static double last_mouse_x = 0.0f;
+static double last_mouse_y = 0.0f;
+static bool mouse_initialized = false;
+
+//
+
+void mouseCallback(GLFWwindow *window, double xpos, double ypos);
+void scrollCallback(GLFWwindow *window, double xpos, double ypos);
 
 void setupGBuffers(
     unsigned int &gBuffer,
@@ -37,28 +50,29 @@ void processInput(GLFWwindow *window)
         glfwSetWindowShouldClose(window, true);
 }
 
+//
+
 int main(void)
 {
     GLFWwindow *window;
 
-    /* Initialize the library */
     if (!glfwInit())
         return -1;
 
-    /* Create a windowed mode window and its OpenGL context */
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "fluid \"simulation\"", NULL, NULL);
-
     if (!window)
     {
         glfwTerminate();
         return -1;
     }
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 
-    /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
     GLenum err = glewInit();
@@ -102,11 +116,6 @@ int main(void)
 
     sim::Simulation simulation = sim::scenarios::cube(5.0f, 3, RADIUS, glm::vec3(0.5, 0.8, 0.6), glm::vec3(0.8, 0.5, 0.7));
 
-    glm::mat4 view = glm::lookAt(
-        glm::vec3(4, 3, 3), // Camera is at (4,3,3), in World Space
-        glm::vec3(0, 0, 0), // and looks at the origin
-        glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
-    );
     glm::mat4 proj = glm::perspective(FOV, WINDOW_ASPECT_RATIO, Z_NEAR, Z_FAR);
 
     float t = 0.0f;
@@ -116,10 +125,7 @@ int main(void)
     {
         processInput(window);
 
-        view = glm::lookAt(
-            glm::vec3(2 * glm::sin(t), 2 + 1 * glm::cos(t), 5 + 2 * glm::cos(t)),
-            glm::vec3(0, 0, 0),
-            glm::vec3(0, 1, 0));
+        glm::mat4 view = cam.getViewMatrix();
 
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
         glDepthMask(GL_TRUE);
@@ -182,6 +188,29 @@ int main(void)
 
     glfwTerminate();
     return 0;
+}
+
+void mouseCallback(GLFWwindow *window, double x_pos, double y_pos)
+{
+    if (!mouse_initialized)
+    {
+        last_mouse_x = x_pos;
+        last_mouse_y = y_pos;
+        mouse_initialized = true;
+        return;
+    }
+
+    double x_diff = x_pos - last_mouse_x;
+    double y_diff = y_pos - last_mouse_y;
+    last_mouse_x = x_pos;
+    last_mouse_y = y_pos;
+
+    cam.handleMouse((float)x_diff, (float)y_diff);
+}
+
+void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
+{
+    cam.handleScroll((float)yoffset);
 }
 
 void setupGBuffers(
