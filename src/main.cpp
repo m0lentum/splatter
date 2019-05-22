@@ -100,7 +100,7 @@ int main(void)
 
     // scene setup
 
-    sim::Simulation simulation = sim::scenarios::cube(5.0f, 3, RADIUS, glm::vec3(0.5, 0.8, 0.6));
+    sim::Simulation simulation = sim::scenarios::cube(5.0f, 3, RADIUS, glm::vec3(0.5, 0.8, 0.6), glm::vec3(0.8, 0.5, 0.7));
 
     glm::mat4 view = glm::lookAt(
         glm::vec3(4, 3, 3), // Camera is at (4,3,3), in World Space

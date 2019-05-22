@@ -52,7 +52,7 @@ void main() {
     }
 
     float w1 = 1 - (sqrt(mag_sq) / 0.5);
-    float w2 = (surface_depth - depth) / epsilon; // TODO this isn't working correctly
+    float w2 = (surface_depth - depth) / epsilon;
     float weight = w1 * w2;
 
     vec3 normal = normalize(vec3(from_center_wld_spc, depth_offset));

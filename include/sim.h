@@ -32,7 +32,7 @@ private:
 
 namespace scenarios
 {
-Simulation cube(float side_length, unsigned int particles_per_side, float particle_radius, glm::vec3 particle_color);
+Simulation cube(float side_length, unsigned int particles_per_side, float particle_radius, glm::vec3 color1, glm::vec3 color2);
 }
 
 } // namespace sim

@@ -36,7 +36,7 @@ void Simulation::draw()
 
 namespace scenarios
 {
-Simulation cube(float side_length, unsigned int particles_per_side, float particle_radius, glm::vec3 particle_color)
+Simulation cube(float side_length, unsigned int particles_per_side, float particle_radius, glm::vec3 color1, glm::vec3 color2)
 {
     std::vector<Particle> particles;
     particles.reserve(particles_per_side * particles_per_side * particles_per_side);
@@ -50,7 +50,11 @@ Simulation cube(float side_length, unsigned int particles_per_side, float partic
             {
                 Particle p;
                 p.position = glm::vec3(x * incr - half_side, y * incr - half_side, z * incr - half_side);
-                p.color = particle_color;
+
+                float d = (float)(particles_per_side - 1) * 3;
+                float t = x / d + y / d + z / d;
+                p.color = t * color2 + (1 - t) * color1;
+
                 particles.push_back(p);
             }
         }
