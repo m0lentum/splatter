@@ -40,7 +40,7 @@ Simulation cube(float side_length, unsigned int particles_per_side, float partic
 {
     std::vector<Particle> particles;
     particles.reserve(particles_per_side * particles_per_side * particles_per_side);
-    float incr = side_length / (float)particles_per_side;
+    float incr = side_length / (float)(particles_per_side - 1);
     float half_side = side_length / 2.0f;
     for (unsigned int x = 0; x < particles_per_side; ++x)
     {

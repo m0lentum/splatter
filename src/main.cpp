@@ -114,7 +114,7 @@ int main(void)
 
     // scene setup
 
-    sim::Simulation simulation = sim::scenarios::cube(5.0f, 3, RADIUS, glm::vec3(0.5, 0.8, 0.6), glm::vec3(0.8, 0.5, 0.7));
+    sim::Simulation simulation = sim::scenarios::cube(5.0f, 5, RADIUS, glm::vec3(0.5, 0.8, 0.6), glm::vec3(0.8, 0.5, 0.7));
 
     glm::mat4 proj = glm::perspective(FOV, WINDOW_ASPECT_RATIO, Z_NEAR, Z_FAR);
 
