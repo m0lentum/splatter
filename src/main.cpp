@@ -16,8 +16,11 @@
 
 //
 
-static const float RADIUS = 1.0f;
+static const float RADIUS = 0.5f;
 static const float EPSILON = 0.25f * RADIUS;
+static const std::size_t PARTICLE_COUNT = 10;
+static const glm::vec3 COLOR1 = glm::vec3(0.5, 0.8, 0.6);
+static const glm::vec3 COLOR2 = glm::vec3(0.1, 0.6, 0.8);
 
 static const unsigned int WINDOW_WIDTH = 800;
 static const unsigned int WINDOW_HEIGHT = 600;
@@ -114,11 +117,9 @@ int main(void)
 
     // scene setup
 
-    sim::Simulation simulation = sim::scenarios::cube(5.0f, 5, RADIUS, glm::vec3(0.5, 0.8, 0.6), glm::vec3(0.8, 0.5, 0.7));
+    sim::Simulation simulation = sim::scenarios::cube(5.0f, PARTICLE_COUNT, RADIUS, COLOR1, COLOR2);
 
     glm::mat4 proj = glm::perspective(FOV, WINDOW_ASPECT_RATIO, Z_NEAR, Z_FAR);
-
-    float t = 0.0f;
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -126,6 +127,7 @@ int main(void)
         processInput(window);
 
         glm::mat4 view = cam.getViewMatrix();
+        simulation.update_sinewave(0.02f, 0.3f);
 
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
         glDepthMask(GL_TRUE);
@@ -182,8 +184,6 @@ int main(void)
 
         /* Poll for and process events */
         glfwPollEvents();
-
-        t += 0.01f;
     }
 
     glfwTerminate();

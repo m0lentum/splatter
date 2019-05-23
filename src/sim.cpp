@@ -6,7 +6,9 @@ namespace sim
 {
 Simulation::Simulation(std::vector<Particle> particles, float particle_radius)
     : m_particles(particles),
-      m_particle_radius(particle_radius)
+      m_particle_radius(particle_radius),
+      m_time(0.0f),
+      m_particles_offset(particles)
 {
     GLuint VBO;
     glGenBuffers(1, &VBO);
@@ -29,14 +31,23 @@ Simulation::Simulation(std::vector<Particle> particles, float particle_radius)
 void Simulation::draw()
 {
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo_index);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, m_particles.size() * sizeof(Particle), &m_particles[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, m_particles_offset.size() * sizeof(Particle), &m_particles_offset[0]);
     glBindVertexArray(m_vao_index);
-    glDrawArrays(GL_POINTS, 0, (GLsizei)m_particles.size());
+    glDrawArrays(GL_POINTS, 0, (GLsizei)m_particles_offset.size());
+}
+
+void Simulation::update_sinewave(float dt, float strength)
+{
+    m_time += dt;
+    for (unsigned int i = 0; i < m_particles.size(); ++i)
+    {
+        m_particles_offset[i].position.y = m_particles[i].position.y + (strength * glm::sin(m_particles[i].position.x + m_particles[i].position.z + m_time));
+    }
 }
 
 namespace scenarios
 {
-Simulation cube(float side_length, unsigned int particles_per_side, float particle_radius, glm::vec3 color1, glm::vec3 color2)
+Simulation cube(float side_length, std::size_t particles_per_side, float particle_radius, glm::vec3 color1, glm::vec3 color2)
 {
     std::vector<Particle> particles;
     particles.reserve(particles_per_side * particles_per_side * particles_per_side);
