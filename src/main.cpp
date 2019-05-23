@@ -17,7 +17,7 @@
 //
 
 static const float RADIUS = 1.0f;
-static const float EPSILON = 1.5f * RADIUS;
+static const float EPSILON = 0.25f * RADIUS;
 
 static const unsigned int WINDOW_WIDTH = 800;
 static const unsigned int WINDOW_HEIGHT = 600;
@@ -158,6 +158,7 @@ int main(void)
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // write to color buffers again
         glDepthMask(GL_FALSE);                           // but not to depth buffer
         glEnable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
         simulation.draw();
         // rendering pass
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -172,7 +173,6 @@ int main(void)
         //shader_render_depth.setFloat("z_near", Z_NEAR);
         //glActiveTexture(GL_TEXTURE0);
         //glBindTexture(GL_TEXTURE_2D, gDepthTex);
-        glDisable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
