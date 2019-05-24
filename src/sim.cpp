@@ -4,39 +4,45 @@
 
 namespace sim
 {
-Simulation::Simulation(std::vector<Particle> particles, float particle_radius)
+Simulation::Simulation(std::vector<Particle> particles, float particle_radius, bool initialize_now)
     : m_particles(particles),
       m_particle_radius(particle_radius),
       m_time(0.0f),
       m_particles_offset(particles)
 {
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
+    if (initialize_now)
+        initialize();
+}
 
-    // vertex array object
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+void Simulation::initialize()
+{
+    if (m_has_vao)
+    {
+        glDeleteVertexArrays(1, &m_vao_id);
+        glDeleteBuffers(1, &m_vbo_id);
+    }
+
+    glGenBuffers(1, &m_vbo_id);
+
+    glGenVertexArrays(1, &m_vao_id);
+    glBindVertexArray(m_vao_id);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_id);
     glBufferData(GL_ARRAY_BUFFER, m_particles.size() * sizeof(Particle), &m_particles[0], GL_DYNAMIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void *)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-
-    m_vao_index = VAO;
-    m_vbo_index = VBO;
 }
 
 void Simulation::draw()
 {
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_index);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_id);
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_particles_offset.size() * sizeof(Particle), &m_particles_offset[0]);
-    glBindVertexArray(m_vao_index);
+    glBindVertexArray(m_vao_id);
     glDrawArrays(GL_POINTS, 0, (GLsizei)m_particles_offset.size());
 }
 
-void Simulation::update_sinewave(float dt, float strength)
+void Simulation::updateOffsetsSinewave(float dt, float strength)
 {
     m_time += dt;
     for (unsigned int i = 0; i < m_particles.size(); ++i)
@@ -45,9 +51,16 @@ void Simulation::update_sinewave(float dt, float strength)
     }
 }
 
+void Simulation::setParticles(std::vector<Particle> particles)
+{
+    m_particles = particles;
+    m_particles_offset = particles;
+    initialize();
+}
+
 namespace scenarios
 {
-Simulation cube(float side_length, std::size_t particles_per_side, float particle_radius, glm::vec3 color1, glm::vec3 color2)
+std::vector<Particle> cube(float side_length, std::size_t particles_per_side, glm::vec3 color1, glm::vec3 color2)
 {
     std::vector<Particle> particles;
     particles.reserve(particles_per_side * particles_per_side * particles_per_side);
@@ -71,7 +84,7 @@ Simulation cube(float side_length, std::size_t particles_per_side, float particl
         }
     }
 
-    return Simulation(particles, particle_radius);
+    return particles;
 }
 } // namespace scenarios
 } // namespace sim

@@ -14,22 +14,35 @@
 #include <sim.h>
 #include <camera.h>
 
-// particle consts
+// particles
 
-static const float RADIUS = 0.5f;
-static const float EPSILON = 0.25f * RADIUS;
-static const std::size_t PARTICLE_COUNT = 30;
+static float particle_radius = 0.5f;
+static const float EPSILON_MULTIPLIER = 0.25f;
+static std::size_t particle_count = 20;
 static const glm::vec3 COLOR1 = glm::vec3(0.5f, 0.8f, 0.6f);
 static const glm::vec3 COLOR2 = glm::vec3(0.1f, 0.6f, 0.8f);
 
-// lighting consts
+static sim::Simulation simulation(sim::scenarios::cube(5.0f, particle_count, COLOR1, COLOR2), particle_radius, false);
+
+void incrementParticleRadius(float r)
+{
+    particle_radius += r;
+}
+
+void incrementParticleCount(std::size_t c)
+{
+    particle_count += c;
+    simulation.setParticles(sim::scenarios::cube(5.0f, particle_count, COLOR1, COLOR2));
+}
+
+// lighting
 
 static const glm::vec3 LIGHT_DIR = glm::normalize(glm::vec3(-0.5f, -1.0f, 0.4f));
 static const glm::vec3 LIGHT_COLOR = glm::vec3(1.0f, 1.0f, 1.0f);
 static const float AMBIENT_STRENGTH = 0.5f;
 static const float SPECULAR_STRENGTH = 0.2f;
 
-// window consts
+// window
 
 static const unsigned int WINDOW_WIDTH = 800;
 static const unsigned int WINDOW_HEIGHT = 600;
@@ -38,10 +51,10 @@ static const float FOV = glm::radians(90.0f);
 static const float Z_NEAR = 0.1f;
 static const float Z_FAR = 15.0f;
 
-// camera vars
+// camera
 
-static Camera cam(7.0f, 0.12f, 0.2f, -30.0f, 45.0f);
-static bool cam_is_spinning = false;
+static Camera cam(8.0f, 0.12f, 0.2f, -30.0f, 45.0f);
+static bool cam_is_spinning = true;
 static double last_mouse_x = 0.0f;
 static double last_mouse_y = 0.0f;
 static bool mouse_initialized = false;
@@ -138,20 +151,19 @@ int main(void)
 
     unsigned int quadVAO = setupRenderQuad();
 
-    // scene setup
-
-    sim::Simulation simulation = sim::scenarios::cube(5.0f, PARTICLE_COUNT, RADIUS, COLOR1, COLOR2);
+    //
 
     glm::mat4 proj = glm::perspective(FOV, WINDOW_ASPECT_RATIO, Z_NEAR, Z_FAR);
+    simulation.initialize();
 
-    /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         if (cam_is_spinning)
             cam.handleMouse(-2.5f, 0.0f);
 
         glm::mat4 view = cam.getViewMatrix();
-        simulation.update_sinewave(0.02f, 0.3f);
+        float epsilon = EPSILON_MULTIPLIER * particle_radius;
+        simulation.updateOffsetsSinewave(0.02f, 0.3f);
 
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
         glDepthMask(GL_TRUE);
@@ -165,8 +177,8 @@ int main(void)
         shader_depth_pass.setMat4("view_proj_matrix", proj * view);
         shader_depth_pass.setFloat("fov_y", FOV);
         shader_depth_pass.setVec2("viewport_size", glm::vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
-        shader_depth_pass.setFloat("epsilon", EPSILON);
-        shader_depth_pass.setFloat("particle_radius", RADIUS);
+        shader_depth_pass.setFloat("epsilon", epsilon);
+        shader_depth_pass.setFloat("particle_radius", particle_radius);
         shader_depth_pass.setFloat("z_near", Z_NEAR);
         shader_depth_pass.setFloat("z_far", Z_FAR);
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // only write to depth buffer
@@ -177,8 +189,8 @@ int main(void)
         shader_blend_pass.setMat4("view_proj_matrix", proj * view);
         shader_blend_pass.setFloat("fov_y", FOV);
         shader_blend_pass.setVec2("viewport_size", glm::vec2(WINDOW_WIDTH, WINDOW_HEIGHT));
-        shader_blend_pass.setFloat("epsilon", EPSILON);
-        shader_blend_pass.setFloat("particle_radius", RADIUS);
+        shader_blend_pass.setFloat("epsilon", epsilon);
+        shader_blend_pass.setFloat("particle_radius", particle_radius);
         shader_blend_pass.setFloat("z_near", Z_NEAR);
         shader_blend_pass.setFloat("z_far", Z_FAR);
         glActiveTexture(GL_TEXTURE0);
@@ -265,6 +277,18 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         break;
     case GLFW_KEY_V: // V: full visualization
         display_mode = DisplayMode::FULL;
+        break;
+    case GLFW_KEY_UP: // up arrow: bigger particles
+        incrementParticleRadius(0.1f);
+        break;
+    case GLFW_KEY_DOWN: // down arrow: smaller particles
+        incrementParticleRadius(-0.1f);
+        break;
+    case GLFW_KEY_RIGHT: // right arrow: more particles
+        incrementParticleCount(1);
+        break;
+    case GLFW_KEY_LEFT: // left arrow: less particles
+        incrementParticleCount(-1);
         break;
     }
 }
