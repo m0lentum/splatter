@@ -14,13 +14,22 @@
 #include <sim.h>
 #include <camera.h>
 
-//
+// particle consts
 
 static const float RADIUS = 0.5f;
 static const float EPSILON = 0.25f * RADIUS;
 static const std::size_t PARTICLE_COUNT = 10;
-static const glm::vec3 COLOR1 = glm::vec3(0.5, 0.8, 0.6);
-static const glm::vec3 COLOR2 = glm::vec3(0.1, 0.6, 0.8);
+static const glm::vec3 COLOR1 = glm::vec3(0.5f, 0.8f, 0.6f);
+static const glm::vec3 COLOR2 = glm::vec3(0.1f, 0.6f, 0.8f);
+
+// lighting consts
+
+static const glm::vec3 LIGHT_DIR = glm::normalize(glm::vec3(-0.5f, -1.0f, 0.4f));
+static const glm::vec3 LIGHT_COLOR = glm::vec3(1.0f, 1.0f, 1.0f);
+static const float AMBIENT_STRENGTH = 0.5f;
+static const float SPECULAR_STRENGTH = 0.2f;
+
+// window consts
 
 static const unsigned int WINDOW_WIDTH = 800;
 static const unsigned int WINDOW_HEIGHT = 600;
@@ -29,12 +38,14 @@ static const float FOV = glm::radians(90.0f);
 static const float Z_NEAR = 0.1f;
 static const float Z_FAR = 20.0f;
 
+// camera vars
+
 static Camera cam(6.0f, 0.12f, 0.2f);
 static double last_mouse_x = 0.0f;
 static double last_mouse_y = 0.0f;
 static bool mouse_initialized = false;
 
-//
+// forward declarations
 
 void mouseCallback(GLFWwindow *window, double xpos, double ypos);
 void scrollCallback(GLFWwindow *window, double xpos, double ypos);
@@ -92,8 +103,9 @@ int main(void)
 
     // enable point size variation and blending
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+    glPointParameteri(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT); // y up
     glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE); // pure additive blend, no alphas
+    glBlendFunc(GL_ONE, GL_ONE); // pure additive blend, no alpha multiplication
 
     // compile shaders
     Shader shader_depth_pass("shaders/splat.vert", "shaders/splat_depth.frag");
@@ -167,6 +179,12 @@ int main(void)
         glBindTexture(GL_TEXTURE_2D, gNormalTex);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, gColorTex);
+        glm::vec4 ld_view = view * glm::vec4(LIGHT_DIR, 0.0);
+        shader_render_pass.setVec3("light_dir_view_spc", glm::vec3(ld_view));
+        shader_render_pass.setVec3("light_color", LIGHT_COLOR);
+        shader_render_pass.setFloat("ambient_strength", AMBIENT_STRENGTH);
+        shader_render_pass.setFloat("specular_strength", SPECULAR_STRENGTH);
+        // depth visualization:
         //shader_render_depth.setFloat("z_far", Z_FAR);
         //shader_render_depth.setFloat("z_near", Z_NEAR);
         //glActiveTexture(GL_TEXTURE0);
@@ -229,7 +247,8 @@ void setupGBuffers(
     // normal buffer
     glGenTextures(1, &normalTexture);
     glBindTexture(GL_TEXTURE_2D, normalTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+    // using RGBA because RGB doesn't work on my laptop, A is not actually used for anything
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, normalTexture, 0);

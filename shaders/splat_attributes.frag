@@ -12,7 +12,7 @@ uniform sampler2D g_depth;
 uniform float z_near;
 uniform float z_far;
 
-layout(location = 0) out vec3 g_normal;
+layout(location = 0) out vec4 g_normal;
 layout(location = 1) out vec4 g_color;
 
 
@@ -56,7 +56,7 @@ void main() {
     float weight = w1 * w2;
 
     vec3 normal = normalize(vec3(from_center_wld_spc, depth_offset));
-    g_normal = weight * normal;
+    g_normal.xyz = weight * normal;
 
     vec3 color = weight * i.color;
     g_color.rgb = color;
