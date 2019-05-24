@@ -18,7 +18,7 @@
 
 static const float RADIUS = 0.5f;
 static const float EPSILON = 0.25f * RADIUS;
-static const std::size_t PARTICLE_COUNT = 10;
+static const std::size_t PARTICLE_COUNT = 30;
 static const glm::vec3 COLOR1 = glm::vec3(0.5f, 0.8f, 0.6f);
 static const glm::vec3 COLOR2 = glm::vec3(0.1f, 0.6f, 0.8f);
 
@@ -36,17 +36,28 @@ static const unsigned int WINDOW_HEIGHT = 600;
 static const float WINDOW_ASPECT_RATIO = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
 static const float FOV = glm::radians(90.0f);
 static const float Z_NEAR = 0.1f;
-static const float Z_FAR = 20.0f;
+static const float Z_FAR = 15.0f;
 
 // camera vars
 
-static Camera cam(6.0f, 0.12f, 0.2f);
+static Camera cam(7.0f, 0.12f, 0.2f, -30.0f, 45.0f);
+static bool cam_is_spinning = false;
 static double last_mouse_x = 0.0f;
 static double last_mouse_y = 0.0f;
 static bool mouse_initialized = false;
 
+enum class DisplayMode
+{
+    DEPTH,
+    COLORS,
+    NORMALS,
+    FULL
+};
+static DisplayMode display_mode = DisplayMode::FULL;
+
 // forward declarations
 
+void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 void mouseCallback(GLFWwindow *window, double xpos, double ypos);
 void scrollCallback(GLFWwindow *window, double xpos, double ypos);
 
@@ -57,12 +68,6 @@ void setupGBuffers(
     unsigned int &colorTexture);
 
 GLuint setupRenderQuad();
-
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-}
 
 //
 
@@ -83,6 +88,7 @@ int main(void)
         glfwTerminate();
         return -1;
     }
+    glfwSetKeyCallback(window, keyCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetScrollCallback(window, scrollCallback);
@@ -112,10 +118,19 @@ int main(void)
     Shader shader_blend_pass("shaders/splat.vert", "shaders/splat_attributes.frag");
     shader_blend_pass.use();
     shader_blend_pass.setInt("g_depth", 0);
-    Shader shader_render_pass("shaders/render.vert", "shaders/render.frag");
-    shader_render_pass.use();
-    shader_render_pass.setInt("g_normals", 0);
-    shader_render_pass.setInt("g_colors", 1);
+    Shader shader_render_depth("shaders/render.vert", "shaders/render_depth.frag");
+    shader_render_depth.use();
+    shader_render_depth.setInt("g_depths", 0);
+    Shader shader_render_colors("shaders/render.vert", "shaders/render_colors.frag");
+    shader_render_colors.use();
+    shader_render_colors.setInt("g_colors", 0);
+    Shader shader_render_normals("shaders/render.vert", "shaders/render_normals.frag");
+    shader_render_normals.use();
+    shader_render_normals.setInt("g_normals", 0);
+    Shader shader_render_full("shaders/render.vert", "shaders/render.frag");
+    shader_render_full.use();
+    shader_render_full.setInt("g_normals", 0);
+    shader_render_full.setInt("g_colors", 1);
 
     // setup G-buffers
     unsigned int gBuffer, gDepthTex, gNormalTex, gColorTex;
@@ -132,7 +147,8 @@ int main(void)
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-        processInput(window);
+        if (cam_is_spinning)
+            cam.handleMouse(-2.5f, 0.0f);
 
         glm::mat4 view = cam.getViewMatrix();
         simulation.update_sinewave(0.02f, 0.3f);
@@ -143,6 +159,7 @@ int main(void)
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClearDepth(1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         // depth pass
         shader_depth_pass.use();
         shader_depth_pass.setMat4("view_proj_matrix", proj * view);
@@ -154,6 +171,7 @@ int main(void)
         shader_depth_pass.setFloat("z_far", Z_FAR);
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // only write to depth buffer
         simulation.draw();
+
         // attribute blend pass
         shader_blend_pass.use();
         shader_blend_pass.setMat4("view_proj_matrix", proj * view);
@@ -170,38 +188,85 @@ int main(void)
         glEnable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
         simulation.draw();
+
         // rendering pass
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        shader_render_pass.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gNormalTex);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, gColorTex);
-        glm::vec4 ld_view = view * glm::vec4(LIGHT_DIR, 0.0);
-        shader_render_pass.setVec3("light_dir_view_spc", glm::vec3(ld_view));
-        shader_render_pass.setVec3("light_color", LIGHT_COLOR);
-        shader_render_pass.setFloat("ambient_strength", AMBIENT_STRENGTH);
-        shader_render_pass.setFloat("specular_strength", SPECULAR_STRENGTH);
-        // depth visualization:
-        //shader_render_depth.setFloat("z_far", Z_FAR);
-        //shader_render_depth.setFloat("z_near", Z_NEAR);
-        //glActiveTexture(GL_TEXTURE0);
-        //glBindTexture(GL_TEXTURE_2D, gDepthTex);
+
+        switch (display_mode)
+        {
+        case DisplayMode::DEPTH:
+            shader_render_depth.use();
+            shader_render_depth.setFloat("z_far", Z_FAR);
+            shader_render_depth.setFloat("z_near", Z_NEAR);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gDepthTex);
+            break;
+        case DisplayMode::COLORS:
+            shader_render_colors.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gColorTex);
+            break;
+        case DisplayMode::NORMALS:
+            shader_render_normals.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gNormalTex);
+            break;
+        case DisplayMode::FULL:
+            glm::vec4 ld_view = view * glm::vec4(LIGHT_DIR, 0.0);
+            shader_render_full.use();
+            shader_render_full.setVec3("light_dir_view_spc", glm::vec3(ld_view));
+            shader_render_full.setVec3("light_color", LIGHT_COLOR);
+            shader_render_full.setFloat("ambient_strength", AMBIENT_STRENGTH);
+            shader_render_full.setFloat("specular_strength", SPECULAR_STRENGTH);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gNormalTex);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gColorTex);
+            break;
+        }
+
         glDisable(GL_BLEND);
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        /* Swap front and back buffers */
-        glfwSwapBuffers(window);
+        //
 
-        /* Poll for and process events */
+        glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     glfwTerminate();
     return 0;
+}
+
+void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    if (action != GLFW_PRESS)
+        return;
+
+    switch (key)
+    {
+    case GLFW_KEY_ESCAPE: // ESC: close window
+        glfwSetWindowShouldClose(window, true);
+        break;
+    case GLFW_KEY_S: // S: make camera spin
+        cam_is_spinning = !cam_is_spinning;
+        break;
+    case GLFW_KEY_Z: // Z: depth visualization
+        display_mode = DisplayMode::DEPTH;
+        break;
+    case GLFW_KEY_X: // X: color visualization
+        display_mode = DisplayMode::COLORS;
+        break;
+    case GLFW_KEY_C: // C: normal visualization
+        display_mode = DisplayMode::NORMALS;
+        break;
+    case GLFW_KEY_V: // V: full visualization
+        display_mode = DisplayMode::FULL;
+        break;
+    }
 }
 
 void mouseCallback(GLFWwindow *window, double x_pos, double y_pos)

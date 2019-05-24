@@ -4,15 +4,12 @@ in VertOut {
     vec2 texcoords;
 } i;
 
-uniform sampler2D tex;
-
-out vec4 FragColor;
+uniform sampler2D g_depths;
 
 uniform float z_near;
 uniform float z_far;
 
-
-
+out vec4 FragColor;
 
 float linearDepth(float depthSample)
 {
@@ -29,6 +26,6 @@ float depthSample(float linearDepth)
 }
 
 void main() {
-    float depth = linearDepth(texture(tex, i.texcoords).x) / z_far;
+    float depth = linearDepth(texture(g_depths, i.texcoords).x) / z_far;
     FragColor = vec4(depth, depth, depth, 1.0);
 }

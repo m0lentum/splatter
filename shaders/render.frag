@@ -6,6 +6,7 @@ in VertOut {
 
 uniform sampler2D g_normals;
 uniform sampler2D g_colors;
+uniform sampler2D g_depths;
 
 uniform vec3 light_dir_view_spc; // single global directional light
 uniform vec3 light_color;
@@ -29,12 +30,6 @@ void main() {
     vec3 specular = specular_strength * specular_effect * light_color;
 
     vec3 result = (ambient + diffuse + specular) * color;
-    FragColor = vec4(result, 1.0);
-    
-    // normal visualization:
-    //vec3 normal_vis = (normal + vec3(1.0, 1.0, 1.0)) / 2.0;
-    //FragColor = vec4(normal_vis, 1.0);
 
-    // color visualization:
-    //FragColor = vec4(color, 1.0);
+    FragColor = vec4(result, 1.0);
 }
