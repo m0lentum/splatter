@@ -19,6 +19,7 @@ private:
 public:
     void handleMouse(float x_diff, float y_diff);
     void handleScroll(float diff);
+    void rotate(float yaw, float pitch);
     glm::mat4 getViewMatrix();
 
     Camera(float dist_from_origin, float sensitivity = 1.0f, float zoom_speed = 0.1f, float yaw = 0.0f, float pitch = 0.0f);

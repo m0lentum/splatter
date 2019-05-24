@@ -156,14 +156,21 @@ int main(void)
     glm::mat4 proj = glm::perspective(FOV, WINDOW_ASPECT_RATIO, Z_NEAR, Z_FAR);
     simulation.initialize();
 
+    double prev_time = glfwGetTime();
+
     while (!glfwWindowShouldClose(window))
     {
+        double curr_time = glfwGetTime();
+        float dt = (float)(curr_time - prev_time);
+        prev_time = curr_time;
+
         if (cam_is_spinning)
-            cam.handleMouse(-2.5f, 0.0f);
+            cam.rotate(-27.0f * dt, 0.0f);
 
         glm::mat4 view = cam.getViewMatrix();
         float epsilon = EPSILON_MULTIPLIER * particle_radius;
-        simulation.updateOffsetsSinewave(0.02f, 0.3f);
+
+        simulation.updateOffsetsSinewave(dt, 0.3f);
 
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
         glDepthMask(GL_TRUE);

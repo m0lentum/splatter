@@ -3,8 +3,13 @@
 
 void Camera::handleMouse(float x_diff, float y_diff)
 {
-    m_yaw += m_sensitivity * x_diff;
-    m_pitch += m_sensitivity * y_diff;
+    rotate(m_sensitivity * x_diff, m_sensitivity * y_diff);
+}
+
+void Camera::rotate(float yaw, float pitch)
+{
+    m_yaw += yaw;
+    m_pitch += pitch;
 
     if (m_pitch > 89.0f)
         m_pitch = 89.0f;
