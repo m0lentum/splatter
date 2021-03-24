@@ -38,5 +38,3 @@ You'll need CMake and all the dependencies listed above, installed somewhere CMa
 Alternatively for GLFW, GLEW and GLM, you can download the sources and set the CMake variables
 GLFW_SRC_DIR, GLEW_SRC_DIR and/or GLM_SRC_DIR respectively.
 
-If you really want to compile this yourself and need more detailed instructions,
-bug me on [Twitter](https://twitter.com/moletrooper) and I might write some.
